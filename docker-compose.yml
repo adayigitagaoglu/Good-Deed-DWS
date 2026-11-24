@@ -1,0 +1,32 @@
+services:
+
+  web-server:
+    build: # Instead of using an existing Docker image, we’ll build one using the instructions below, based on php:apache with additional extensions for database connectivity
+      context: .
+      dockerfile_inline: |
+          FROM php:apache
+          RUN docker-php-ext-install pdo pdo_mysql 
+    restart: unless-stopped # Allows the container to automatically restart on failure unless manually stopped
+    ports:
+      - 127.0.0.1:8000:80 # Maps internal port 80 (Apache default) to external port 8000, allowing access via browser at http://localhost:8000. The "127.0.0.1" prefix restricts access to local machine only
+    volumes:
+      - ./www:/var/www/html/ # Maps local folder './www' to the web server root inside the container. This is where the web app files should be placed.
+      
+  mysql:
+    hostname: database # Container name; you can change it as desired. Use this as the hostname to connect to the database
+    image: mysql:latest # Docker image pulled from https://hub.docker.com/_/mysql. You can specify a version, e.g., mysql:8.0.41, or use 'mysql:latest'
+    restart: unless-stopped # Allows the container to automatically restart on failure unless manually stopped
+    environment:
+     - MYSQL_ROOT_PASSWORD=superVarnoGeslo # Sets the root password. It’s recommended to use a strong and unique password
+    volumes:
+      - ./mysql:/var/lib/mysql # Maps local folder './mysql' to MySQL’s data directory in the container, preserving data between restarts
+    #ports:
+    # - "127.0.0.1:3306:3306" # Maps internal port 3306 (default for MySQL) to external port 3306, enabling access from external tools like MySQL Workbench. Uncomment if needed.
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin:latest # Docker image for phpMyAdmin. 'latest' pulls the most recent version
+    restart: unless-stopped # Allows the container to automatically restart on failure unless manually stopped
+    ports:
+      - "127.0.0.1:8001:80" # Maps internal port 80 to external 8001, allowing access via browser at http://localhost:8001. Login with username "root" and password defined in MYSQL_ROOT_PASSWORD. The "127.0.0.1" prefix restricts access to local machine only
+    environment:
+      PMA_HOST: database  # The name of the MySQL container that phpMyAdmin connects to. This is the same name used for MySQL in Docker networking.
